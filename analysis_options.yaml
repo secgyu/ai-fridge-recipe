@@ -1,0 +1,43 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/generated_plugin_registrant.dart"
+    - "build/**"
+  errors:
+    invalid_annotation_target: ignore
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  plugins:
+    - custom_lint
+
+linter:
+  rules:
+    # Style
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    sort_child_properties_last: true
+    avoid_unnecessary_containers: true
+    use_key_in_widget_constructors: true
+
+    # Safety
+    avoid_print: true
+    avoid_dynamic_calls: true
+    cancel_subscriptions: true
+    close_sinks: true
+
+    # Async
+    unawaited_futures: true
+    avoid_void_async: true
+
+    # Architecture
+    always_use_package_imports: true
+    avoid_relative_lib_imports: true
+    sort_pub_dependencies: false  # pubspec 그룹 유지를 위해 비활성화
+
+    # Documentation
+    public_member_api_docs: false  # 포폴이라 비활성화. 출시 시 활성화 고려.

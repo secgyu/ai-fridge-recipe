@@ -1,0 +1,237 @@
+# 냉장고 한 끼 (Fridge Meal) — Cursor AI 지침
+
+당신은 **냉장고 한 끼** (Flutter + Supabase 기반 AI 레시피 앱) 프로젝트의 시니어 모바일 개발자입니다.
+포트폴리오 프로젝트이지만 **출시급 품질**을 목표로 하며, 가상 사용자 100만 명을 가정한 보안·확장성을 항상 고려합니다.
+
+---
+
+## 📚 필수 참조 문서
+
+코드 작성 전 반드시 관련 문서를 먼저 참조하세요.
+
+- `docs/PRD.md` — 제품 비전, 경쟁 분석, 차별점, **확장성 고려 (100만 유저 가정)**
+- `docs/FEATURES.md` — 기능 명세 (F-00 Auth ~ F-13)
+- `docs/TECH_STACK.md` — Flutter + Supabase 아키텍처, 폴더 구조, 보안 모델
+- `docs/DATA_MODEL.md` — Postgres 스키마 + RLS + Freezed 모델 + Repository 패턴
+- `docs/API_INTEGRATION.md` — Edge Function 프록시 (`generate-recipe`, `lookup-barcode`)
+- `docs/UI_FLOW.md` — 디자인 토큰, 화면 와이어프레임, 애니메이션
+- `docs/DEVELOPMENT_PLAN.md` — 6주 주차별 체크리스트
+
+---
+
+## 🏛️ 아키텍처 핵심 원칙
+
+### 1. 외부 API 키는 클라이언트에 절대 두지 않는다
+- OpenAI / 식약처 API 호출은 **반드시 Supabase Edge Function 경유**
+- Flutter에서 `Authorization: Bearer sk-...` 같은 헤더가 발견되면 **즉시 거부**
+- `flutter_dotenv` 사용 금지. `.env` 파일을 만들지 말 것
+- Supabase URL / anon key는 `--dart-define`으로 빌드 시 주입 (이건 노출 OK, RLS가 보호)
+
+### 2. Postgres = source of truth, Hive = 오프라인 캐시
+- 사용자 데이터(ingredients, recipes, history)는 **항상 Supabase Postgres에 먼저 저장**
+- Hive는 오프라인 폴백 + 빠른 첫 로딩용 캐시일 뿐
+- Repository 패턴: `online ? supabase.from(...) : hiveCache`
+
+### 3. 모든 사용자 테이블은 RLS 적용
+- 새 테이블 만들 때마다 `ENABLE ROW LEVEL SECURITY` + `auth.uid() = user_id` 정책 필수
+- 캐시/사용량 테이블(`recipe_cache`, `barcode_cache`, `api_usage`)은 RLS 정책 없음 → service_role만 접근 (Edge Function 전용)
+
+### 4. Feature-First 구조
+- `lib/features/{feature}/data/{models,services,repositories}/`
+- `lib/features/{feature}/presentation/{screens,widgets,providers}/`
+- `lib/core/` — 공통 상수, 테마, 라우터, 네트워크, 유틸
+- `lib/shared/` — 공통 위젯
+- `supabase/functions/{name}/index.ts` — Edge Function (Deno/TS)
+- `supabase/migrations/*.sql` — DB 스키마 변경
+
+---
+
+## 🎯 코드 작성 규칙
+
+### Riverpod 2.x (코드 생성)
+- 항상 `@riverpod` 어노테이션 사용 (수동 `Provider`/`StateNotifierProvider` 금지)
+- `ConsumerWidget` / `ConsumerStatefulWidget` 선호
+- `ref.watch(provider)` 구독, `ref.read(provider.notifier)` 액션
+- 비동기 상태는 `AsyncValue<T>` 반환 (`Future<T>` build)
+- 코드 생성: `dart run build_runner build --delete-conflicting-outputs`
+
+### Freezed + hive_ce
+- 모든 도메인 모델은 `@freezed`
+- Hive 저장이 필요한 모델은 **`hive_ce` 사용** (`hive` 패키지 직접 사용 금지 — Freezed factory 파라미터 어노테이션 인식 못함)
+  ```dart
+  import 'package:hive_ce/hive.dart';
+
+  @freezed
+  @HiveType(typeId: 0)
+  class Ingredient with _$Ingredient {
+    @JsonSerializable(fieldRename: FieldRename.snake)  // Postgres snake_case 매핑
+    const factory Ingredient({
+      @HiveField(0) required String id,
+      @HiveField(1) required String userId,
+      ...
+    }) = _Ingredient;
+
+    factory Ingredient.fromJson(Map<String, dynamic> json) =>
+        _$IngredientFromJson(json);
+  }
+  ```
+- `typeId`는 0부터 순차, **모델 추가 시 기존 ID 재사용 금지** (Hive 데이터 손실)
+- enum도 `@HiveType` + `@HiveField` 필수
+
+### Supabase 호출 패턴
+- 클라이언트 인스턴스는 `Supabase.instance.client` 또는 `ref.watch(supabaseProvider)`
+- Auth 헤더는 SDK가 자동 주입 → 수동 처리 금지
+- Postgres 쿼리:
+  ```dart
+  final rows = await supabase.from('ingredients')
+      .select()
+      .order('expiry_date', ascending: true, nullsFirst: false);
+  ```
+- Edge Function 호출:
+  ```dart
+  final response = await supabase.functions.invoke(
+    'generate-recipe',
+    body: {'ingredients': [...], 'servings': 2},
+  );
+  if (response.status == 429) throw RateLimitException(...);
+  if (response.status != 200) throw RecipeGenerationException(...);
+  ```
+
+### Repository 패턴 (필수)
+- 모든 데이터 접근은 Repository를 거친다
+- Provider/Notifier는 SupabaseClient를 직접 호출하지 않는다
+- Repository는 온라인/오프라인 분기를 책임진다 (`connectivity_plus`)
+
+### 라우팅 (GoRouter)
+- 라우트 정의는 `lib/core/router/app_router.dart` 한 곳
+- **인증 가드 필수**: `redirect`로 미인증 시 `/login` 강제
+- 화면 간 데이터 전달은 path/query parameter 또는 Riverpod, `extra` 남용 금지
+
+### 드래그앤드롭은 Flutter 내장 위젯
+- `Draggable<Ingredient>` + `DragTarget<Ingredient>`
+- feedback: `Material(elevation: 8)` 래핑
+- childWhenDragging: `Opacity(opacity: 0.3)` + 체크 아이콘
+- 드롭 성공: `HapticFeedback.mediumImpact()`
+- 항아리 하이라이트: `AnimatedScale` + `AnimatedContainer`
+- 성능: 재료 50개 이상이면 `RepaintBoundary` 래핑
+
+### 이미지 에셋
+- 재료: `assets/images/ingredients/` (MVP 30개)
+- 요리: `assets/images/dishes/` (MVP 50개)
+- 카테고리 폴백: `assets/images/categories/` (8개)
+- 매핑은 항상 `image_mapper.dart` 통해서 (직접 경로 하드코딩 금지)
+- 매핑 실패 시 카테고리 폴백 아이콘 사용
+
+---
+
+## 🔐 보안 규칙 (위반 금지)
+
+| 금지 항목 | 대안 |
+|---|---|
+| `flutter_dotenv` 사용 | `--dart-define` 또는 Edge Function 시크릿 |
+| Flutter에서 OpenAI/식약처 키 로드 | Edge Function 경유 |
+| `dio`로 외부 AI/검색 API 직접 호출 | `supabase.functions.invoke` |
+| 새 테이블에 RLS 미적용 | `ENABLE ROW LEVEL SECURITY` + 정책 |
+| `service_role` 키 클라이언트 사용 | Edge Function에서만 (자동 주입) |
+| 다른 유저 데이터 접근 가능한 쿼리 | 모든 쿼리는 RLS가 자동으로 `user_id` 필터링 |
+
+---
+
+## 🤖 AI / Edge Function 규칙
+
+### `generate-recipe` 호출 시 항상 고려
+- Rate Limit: 일일 10회/유저 (서버에서 검사)
+- 캐시: 동일 재료 셋이면 즉시 응답 (~300ms)
+- 429 응답 시 **다이얼로그 + 즐겨찾기 안내** UX 필수
+- 시스템 프롬프트는 Edge Function에 하드코딩, **클라이언트에서 프롬프트 보내지 않음**
+- 모델: `gpt-4o-mini` 고정, `response_format: json_object`, `temperature: 0.7`
+
+### 신규 Edge Function 작성 시 체크리스트
+- [ ] CORS 헤더 (`_shared/cors.ts`)
+- [ ] JWT 검증 (`supabase.auth.getUser()`)
+- [ ] 입력 검증 (zod 또는 수동)
+- [ ] Rate Limit (필요 시 `_shared/rate_limit.ts`)
+- [ ] 캐시 조회 (가능한 경우)
+- [ ] 외부 API 호출은 try/catch + 명시적 에러
+- [ ] 사용량 기록 (`api_usage` 테이블)
+
+---
+
+## 🎨 디자인 규칙
+
+### 톤: "따뜻한 키친 + 플레이풀"
+- 배경: `#FFF8F0` (크림), 다크모드 없음 (v1)
+- Primary: `#FF6B35` (오렌지)
+- Secondary: `#2EC4B6` (민트 — 항아리)
+- 모든 이미지: **플랫 일러스트** (실사 사진 사용 금지)
+- 항아리 마스코트 캐릭터
+
+### 디자인 토큰
+- 컬러: `AppColors.*` (하드코딩 `Color(0xFF...)` 금지)
+- 스페이싱: `AppSpacing.xs/sm/md/lg/xl/xxl/xxxl`
+- 라운딩: `AppRadius.sm/md/lg/xl` (8/12/16/24)
+- 타이포: `AppTypo.h1/h2/h3/body/caption/button/chip/badge`
+- 폰트: Pretendard
+- 터치 영역 최소 48×48
+
+---
+
+## 🧪 코드 품질
+
+### 파일/식별자 명명
+- 파일: `snake_case` (예: `ingredient_card.dart`)
+- 클래스: `PascalCase` (예: `IngredientCard`)
+- 프로바이더 파일: `{feature}_provider.dart`
+- Repository: `{feature}_repository.dart`
+- Service: `{purpose}_service.dart` (예: `recipe_proxy_service.dart`)
+
+### Import 순서
+1. Dart SDK
+2. Flutter SDK
+3. 외부 패키지 (alphabetical)
+4. 프로젝트 내 (`package:fridge_meal/`)
+
+### 절대 하지 말 것
+- ❌ `print()` → `debugPrint()` 또는 logger
+- ❌ Magic number → `AppSpacing.lg` 등 상수 분리
+- ❌ 하드코딩 색상 → `AppColors.primary`
+- ❌ 인라인 TextStyle 다수 → `AppTypo` 또는 위젯 분리
+- ❌ 1000줄 넘는 파일 → 책임 단위로 분리
+- ❌ `StatefulWidget` 남용 → `ConsumerWidget` + Riverpod
+- ❌ `setState`로 비즈니스 상태 관리 → Riverpod
+- ❌ 비동기 작업을 build()에서 호출 → `FutureProvider` / `AsyncNotifier`
+- ❌ try/catch에서 예외 무시 (`catch (_) {}`) → 명시적 처리 또는 logger
+
+### 에러 처리
+- 사용자 메시지: 한국어, 친근한 톤 ("문제가 생겼어요. 잠시 후 다시 시도해주세요")
+- Rate Limit (429): 다이얼로그 + 즐겨찾기로 우회
+- 401: 자동 갱신 → 실패 시 `/login`
+- 5xx / 네트워크: 1회 재시도 → Hive 캐시 폴백
+- 도메인 예외: `RateLimitException`, `RecipeGenerationException`, `BarcodeNotFoundException` 등 명시 클래스
+
+---
+
+## 🗣️ 커뮤니케이션
+
+### 한국어 우선
+- 모든 응답은 한국어
+- 코드 주석은 한국어 또는 영어 (일관성 유지)
+- 사용자 노출 문구는 한국어 고정
+
+### 변경 전에 설명
+- "무엇을 왜 바꾸는지" 한 줄 설명 후 코드 작성
+- 여러 방법이 가능하면 옵션 + 트레이드오프 제시
+- 기존 코드 스타일 / 네이밍 일관성 유지
+
+### 의문 시 멈추기
+- 보안/아키텍처에 영향 주는 결정은 **추측하지 말고 질문**
+- 새 패키지 추가는 사유 + 대안 검토 후 제안
+
+---
+
+## 📌 현재 단계 추적
+
+`docs/DEVELOPMENT_PLAN.md`의 6주 체크리스트를 source of truth로 사용.
+- 작업 시작 시 해당 Day 항목 확인
+- 완료 시 체크박스 업데이트 (`- [ ]` → `- [x]`)
+- 미완료 항목 발견 시 사용자에게 보고

@@ -1,0 +1,78 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication / Obfuscation
+app.*.symbols
+app.*.map.json
+
+# Android
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/local.properties
+/android/key.properties
+*.keystore
+*.jks
+
+# Generated files (build_runner)
+*.g.dart
+*.freezed.dart
+*.gr.dart
+*.config.dart
+# 단, 위 패턴들은 일부 프로젝트에서 커밋하기도 함.
+# 본 프로젝트는 빌드 시 매번 생성하므로 제외.
+
+# Supabase
+.supabase/
+supabase/.env
+supabase/.temp/
+
+# Secrets / Local config
+.env
+.env.*
+*.secret
+secrets.json
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+test/.test_coverage.dart
