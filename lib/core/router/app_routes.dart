@@ -8,12 +8,12 @@ class AppRoutes {
   // 진입 / 게이트
   static const String splash = '/splash';
   static const String onboarding = '/onboarding';
+  static const String login = '/login';
 
   // 메인
   static const String home = '/';
 
-  // 추후 추가 예정 (인증/메인 플로우 도입 시)
-  // static const String login = '/login';
+  // 추후 추가 예정 (메인 플로우 도입 시)
   // static const String fridge = '/fridge';
   // static const String cook = '/cook';
   // static const String recipe = '/recipe/:id';

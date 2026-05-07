@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:fridge_meal/core/router/app_routes.dart';
+import 'package:fridge_meal/features/auth/data/repositories/auth_repository.dart';
+import 'package:fridge_meal/features/auth/presentation/providers/auth_provider.dart';
+import 'package:fridge_meal/features/auth/presentation/screens/login_screen.dart';
 import 'package:fridge_meal/features/home/presentation/screens/home_screen.dart';
 import 'package:fridge_meal/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:fridge_meal/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -29,6 +32,9 @@ GoRouter appRouter(Ref ref) {
   ref.listen(onboardingCompletedProvider, (_, _) {
     refresh.value = Object();
   });
+  ref.listen(authStateProvider, (_, _) {
+    refresh.value = Object();
+  });
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -41,11 +47,21 @@ GoRouter appRouter(Ref ref) {
       if (loc == AppRoutes.splash) return null;
 
       final bool onboardingDone = ref.read(onboardingCompletedProvider);
-
-      if (!onboardingDone && loc != AppRoutes.onboarding) {
-        return AppRoutes.onboarding;
+      if (!onboardingDone) {
+        return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
       }
-      if (onboardingDone && loc == AppRoutes.onboarding) {
+
+      // 온보딩 완료 후 인증 가드.
+      final AuthMode authMode = ref.read(authStateProvider);
+      final bool isLoggedIn = authMode == AuthMode.authenticated ||
+          authMode == AuthMode.guest;
+
+      if (!isLoggedIn) {
+        return loc == AppRoutes.login ? null : AppRoutes.login;
+      }
+
+      // 이미 로그인된 사용자는 onboarding/login 진입 차단.
+      if (loc == AppRoutes.onboarding || loc == AppRoutes.login) {
         return AppRoutes.home;
       }
       return null;
@@ -65,6 +81,13 @@ GoRouter appRouter(Ref ref) {
         pageBuilder: (BuildContext context, GoRouterState state) => _fadePage(
           state: state,
           child: const OnboardingScreen(),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        pageBuilder: (BuildContext context, GoRouterState state) => _fadePage(
+          state: state,
+          child: const LoginScreen(),
         ),
       ),
       GoRoute(
