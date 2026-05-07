@@ -1,20 +1,35 @@
 import 'package:flutter/material.dart';
 
+import 'package:fridge_meal/core/constants/ingredient_category.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_radius.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
+import 'package:fridge_meal/core/utils/image_mapper.dart';
+import 'package:fridge_meal/shared/widgets/ingredient_list_item.dart';
 
 /// Onboarding Page 2 에서 노출되는 정적 미리보기 카드.
 ///
-/// 실제 `IngredientCard` 위젯이 만들어지면 그 컴포넌트를 그대로 끼워 쓰도록
-/// 구조를 단순한 데이터 + 행으로 분리.
+/// 실제 냉장고 화면과 동일한 [IngredientListItem] 위젯을 사용한다.
+/// → 디자인 토큰 변경 시 온보딩과 실제 화면이 자동으로 동기화된다.
 class IngredientStackPreview extends StatelessWidget {
   const IngredientStackPreview({super.key});
 
   static const List<_PreviewItem> _items = <_PreviewItem>[
-    _PreviewItem(name: '감자', dDay: 'D-5', color: AppColors.success),
-    _PreviewItem(name: '양파', dDay: 'D-8', color: AppColors.warning),
-    _PreviewItem(name: '돼지고기', dDay: 'D-1', color: AppColors.danger),
+    _PreviewItem(
+      name: '감자',
+      category: IngredientCategory.vegetable,
+      daysLeft: 8,
+    ),
+    _PreviewItem(
+      name: '양파',
+      category: IngredientCategory.vegetable,
+      daysLeft: 5,
+    ),
+    _PreviewItem(
+      name: '돼지고기',
+      category: IngredientCategory.meat,
+      daysLeft: 1,
+    ),
   ];
 
   @override
@@ -37,7 +52,14 @@ class IngredientStackPreview extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           for (int i = 0; i < _items.length; i++) ...<Widget>[
-            _PreviewRow(item: _items[i]),
+            IngredientListItem(
+              name: _items[i].name,
+              imagePath: IngredientImageMapper.resolve(
+                name: _items[i].name,
+                category: _items[i].category,
+              ),
+              daysLeft: _items[i].daysLeft,
+            ),
             const _PreviewDivider(),
           ],
           const _AddRow(),
@@ -50,63 +72,13 @@ class IngredientStackPreview extends StatelessWidget {
 class _PreviewItem {
   const _PreviewItem({
     required this.name,
-    required this.dDay,
-    required this.color,
+    required this.category,
+    required this.daysLeft,
   });
 
   final String name;
-  final String dDay;
-  final Color color;
-}
-
-class _PreviewRow extends StatelessWidget {
-  const _PreviewRow({required this.item});
-
-  final _PreviewItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      child: Row(
-        children: <Widget>[
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: item.color,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Text(
-              item.name,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-          Text(
-            item.dDay,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              height: 1.2,
-              letterSpacing: -0.1,
-              color: item.color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  final IngredientCategory category;
+  final int daysLeft;
 }
 
 class _AddRow extends StatelessWidget {
@@ -120,14 +92,22 @@ class _AddRow extends StatelessWidget {
         vertical: AppSpacing.md,
       ),
       child: Row(
-        children: const <Widget>[
-          Icon(
-            Icons.add_circle_outline,
-            size: 16,
-            color: AppColors.textTertiary,
+        children: <Widget>[
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSubtle,
+              borderRadius: AppRadius.rSm,
+            ),
+            child: const Icon(
+              Icons.add,
+              size: 20,
+              color: AppColors.textTertiary,
+            ),
           ),
-          SizedBox(width: AppSpacing.md),
-          Text(
+          const SizedBox(width: AppSpacing.md),
+          const Text(
             '재료 추가',
             style: TextStyle(
               fontSize: 14,

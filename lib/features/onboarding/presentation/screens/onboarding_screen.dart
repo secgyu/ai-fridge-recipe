@@ -143,8 +143,8 @@ class _IllustrationImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 280,
-      height: 280,
+      width: 320,
+      height: 320,
       child: Image.asset(
         asset,
         fit: BoxFit.contain,

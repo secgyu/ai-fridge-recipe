@@ -25,7 +25,7 @@ class OnboardingPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
       child: Column(
         children: <Widget>[
-          const SizedBox(height: AppSpacing.huge),
+          const SizedBox(height: AppSpacing.xxxl),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -43,9 +43,10 @@ class OnboardingPage extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
-          Expanded(
-            child: Center(child: illustration),
-          ),
+          // 텍스트와 일러스트의 시각적 연결을 위해 위쪽 여백을 더 짧게(2:3).
+          const Spacer(flex: 2),
+          illustration,
+          const Spacer(flex: 3),
         ],
       ),
     );
