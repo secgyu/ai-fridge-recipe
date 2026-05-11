@@ -19,11 +19,12 @@ class SocialLoginButton extends StatelessWidget {
   final Color backgroundColor;
   final Color foregroundColor;
   final Color? borderColor;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final bool enabled = onPressed != null;
+    final Widget button = Material(
       color: backgroundColor,
       borderRadius: AppRadius.rLg,
       child: InkWell(
@@ -62,6 +63,12 @@ class SocialLoginButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    return AnimatedOpacity(
+      opacity: enabled ? 1.0 : 0.6,
+      duration: const Duration(milliseconds: 120),
+      child: button,
     );
   }
 }
