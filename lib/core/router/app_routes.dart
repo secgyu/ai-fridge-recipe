@@ -10,13 +10,18 @@ class AppRoutes {
   static const String onboarding = '/onboarding';
   static const String login = '/login';
 
-  // 메인 — 현재는 단일 화면(`FridgeScreen`)이 `/`에 렌더링된다.
-  // 추후 ShellRoute + 바텀 네비 도입 시 이 경로는 냉장고 탭으로 옮겨질 수 있다.
-  static const String home = '/';
+  // 메인 셸 4탭 (StatefulShellRoute로 묶여 IndexedStack 유지).
+  static const String fridge = '/fridge';
+  static const String cook = '/cook';
+  static const String history = '/history';
+  static const String settings = '/settings';
+
+  /// 로그인/스플래시가 가리키는 기본 메인 경로.
+  /// 항상 첫 번째 탭(`/fridge`)으로 일치시킨다.
+  static const String home = fridge;
 
   // 추후 추가 예정 (메인 플로우 도입 시)
-  // static const String cook = '/cook';
-  // static const String history = '/history';
+  // static const String scan = '/scan';
+  // static const String confirm = '/confirm';
   // static const String recipe = '/recipe/:id';
-  // static const String settings = '/settings';
 }
