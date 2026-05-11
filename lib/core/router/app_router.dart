@@ -7,7 +7,7 @@ import 'package:fridge_meal/core/router/app_routes.dart';
 import 'package:fridge_meal/features/auth/data/repositories/auth_repository.dart';
 import 'package:fridge_meal/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fridge_meal/features/auth/presentation/screens/login_screen.dart';
-import 'package:fridge_meal/features/home/presentation/screens/home_screen.dart';
+import 'package:fridge_meal/features/fridge/presentation/screens/fridge_screen.dart';
 import 'package:fridge_meal/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:fridge_meal/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:fridge_meal/features/splash/presentation/screens/splash_screen.dart';
@@ -94,7 +94,7 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.home,
         pageBuilder: (BuildContext context, GoRouterState state) => _fadePage(
           state: state,
-          child: const HomeScreen(),
+          child: const FridgeScreen(),
         ),
       ),
     ],

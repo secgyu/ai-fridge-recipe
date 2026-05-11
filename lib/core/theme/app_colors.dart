@@ -19,6 +19,8 @@ class AppColors {
   // Line
   static const Color border = Color(0xFFE5E7EB);
   static const Color borderStrong = Color(0xFFD1D5DB);
+  /// 리스트 내부 구분선용. border보다 옅음.
+  static const Color divider = Color(0xFFF2F4F6);
 
   // Status
   static const Color danger = Color(0xFFEF4444);
