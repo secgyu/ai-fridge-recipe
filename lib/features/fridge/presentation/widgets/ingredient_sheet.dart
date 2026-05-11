@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import 'package:fridge_meal/core/constants/ingredient_category.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
@@ -12,19 +13,26 @@ import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
 import 'package:fridge_meal/features/fridge/data/models/storage_location.dart';
 import 'package:fridge_meal/features/fridge/presentation/providers/ingredient_provider.dart';
 
-/// 재료 카드 탭 시 노출되는 편집/삭제 바텀시트.
+/// 재료 추가/편집 통합 바텀시트.
 ///
-/// 사용법:
-/// ```dart
-/// await EditIngredientSheet.show(context, ingredient);
-/// ```
-class EditIngredientSheet extends ConsumerStatefulWidget {
-  const EditIngredientSheet._({required this.ingredient});
+/// - `ingredient == null` → 추가 모드 (제목 "재료 추가", 삭제 버튼 숨김, 자동 포커스)
+/// - `ingredient != null` → 편집 모드 (제목 "재료 편집", 삭제 버튼 노출, 자동 포커스 없음)
+class IngredientSheet extends ConsumerStatefulWidget {
+  const IngredientSheet._({this.ingredient});
 
-  final Ingredient ingredient;
+  final Ingredient? ingredient;
 
-  /// 바텀시트를 띄우고 닫힘까지 대기. 완료(저장/삭제) 시 `true`, 취소 시 `null`/`false`.
-  static Future<bool?> show(BuildContext context, Ingredient ingredient) {
+  /// 신규 재료 추가용. 완료(저장) 시 `true`, 취소 시 `null`.
+  static Future<bool?> showAdd(BuildContext context) {
+    return _show(context, null);
+  }
+
+  /// 기존 재료 편집용. 완료(저장/삭제) 시 `true`, 취소 시 `null`.
+  static Future<bool?> showEdit(BuildContext context, Ingredient ingredient) {
+    return _show(context, ingredient);
+  }
+
+  static Future<bool?> _show(BuildContext context, Ingredient? ingredient) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
@@ -33,34 +41,48 @@ class EditIngredientSheet extends ConsumerStatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (BuildContext ctx) =>
-          EditIngredientSheet._(ingredient: ingredient),
+          IngredientSheet._(ingredient: ingredient),
     );
   }
 
   @override
-  ConsumerState<EditIngredientSheet> createState() =>
-      _EditIngredientSheetState();
+  ConsumerState<IngredientSheet> createState() => _IngredientSheetState();
 }
 
-class _EditIngredientSheetState extends ConsumerState<EditIngredientSheet> {
+class _IngredientSheetState extends ConsumerState<IngredientSheet> {
+  static const Uuid _uuid = Uuid();
+
   late final TextEditingController _nameController;
+  late final FocusNode _nameFocus;
   late IngredientCategory _category;
   late StorageLocation _storage;
   late DateTime? _expiryDate;
   bool _saving = false;
 
+  bool get _isEdit => widget.ingredient != null;
+
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.ingredient.name);
-    _category = widget.ingredient.category;
-    _storage = widget.ingredient.storage;
-    _expiryDate = widget.ingredient.expiryDate;
+    final Ingredient? src = widget.ingredient;
+    _nameController = TextEditingController(text: src?.name ?? '');
+    _nameFocus = FocusNode();
+    _category = src?.category ?? IngredientCategory.vegetable;
+    _storage = src?.storage ?? StorageLocation.fridge;
+    _expiryDate = src?.expiryDate;
+
+    // 추가 모드에서는 시트 등장 직후 키보드 자동 노출.
+    if (!_isEdit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _nameFocus.requestFocus();
+      });
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _nameFocus.dispose();
     super.dispose();
   }
 
@@ -71,15 +93,30 @@ class _EditIngredientSheetState extends ConsumerState<EditIngredientSheet> {
     setState(() => _saving = true);
     unawaited(HapticFeedback.lightImpact());
 
-    final Ingredient updated = widget.ingredient.copyWith(
-      name: _nameController.text.trim(),
-      category: _category,
-      storage: _storage,
-      expiryDate: _expiryDate,
-    );
+    final String name = _nameController.text.trim();
 
     try {
-      await ref.read(ingredientsProvider.notifier).updateItem(updated);
+      if (_isEdit) {
+        final Ingredient updated = widget.ingredient!.copyWith(
+          name: name,
+          category: _category,
+          storage: _storage,
+          expiryDate: _expiryDate,
+        );
+        await ref.read(ingredientsProvider.notifier).updateItem(updated);
+      } else {
+        // TODO(auth): Supabase 연동 후 실제 userId로 교체.
+        final Ingredient created = Ingredient(
+          id: _uuid.v4(),
+          userId: 'mock-user',
+          name: name,
+          category: _category,
+          storage: _storage,
+          expiryDate: _expiryDate,
+          createdAt: DateTime.now(),
+        );
+        await ref.read(ingredientsProvider.notifier).addItem(created);
+      }
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } finally {
@@ -88,13 +125,15 @@ class _EditIngredientSheetState extends ConsumerState<EditIngredientSheet> {
   }
 
   Future<void> _confirmDelete() async {
-    if (_saving) return;
+    final Ingredient? src = widget.ingredient;
+    if (src == null || _saving) return;
+
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.rLg),
         title: const Text('이 재료를 삭제할까요?'),
-        content: Text('"${widget.ingredient.name}"이(가) 냉장고에서 사라져요.'),
+        content: Text('"${src.name}"이(가) 냉장고에서 사라져요.'),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -122,9 +161,7 @@ class _EditIngredientSheetState extends ConsumerState<EditIngredientSheet> {
     unawaited(HapticFeedback.mediumImpact());
 
     try {
-      await ref
-          .read(ingredientsProvider.notifier)
-          .deleteItem(widget.ingredient.id);
+      await ref.read(ingredientsProvider.notifier).deleteItem(src.id);
       if (!mounted) return;
       Navigator.of(context).pop(true);
     } finally {
@@ -152,7 +189,6 @@ class _EditIngredientSheetState extends ConsumerState<EditIngredientSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // 키보드 영역만큼 패딩을 더해 입력 시 가려지지 않게 함.
     final double keyboard = MediaQuery.viewInsetsOf(context).bottom;
 
     return SafeArea(
@@ -168,13 +204,14 @@ class _EditIngredientSheetState extends ConsumerState<EditIngredientSheet> {
               const SizedBox(height: AppSpacing.md),
               const _GrabHandle(),
               const SizedBox(height: AppSpacing.lg),
-              const _SheetHeader(title: '재료 편집'),
+              _SheetHeader(title: _isEdit ? '재료 편집' : '재료 추가'),
               const SizedBox(height: AppSpacing.xl),
 
               const _FieldLabel('이름'),
               const SizedBox(height: AppSpacing.sm),
               _NameField(
                 controller: _nameController,
+                focusNode: _nameFocus,
                 onChanged: (_) => setState(() {}),
                 onSubmitted: (_) => _save(),
               ),
@@ -209,6 +246,7 @@ class _EditIngredientSheetState extends ConsumerState<EditIngredientSheet> {
               const SizedBox(height: AppSpacing.xxxl),
 
               _ActionRow(
+                isEdit: _isEdit,
                 onDelete: _saving ? null : _confirmDelete,
                 onSave: (_isValid && !_saving) ? _save : null,
                 saving: _saving,
@@ -297,11 +335,13 @@ class _FieldLabel extends StatelessWidget {
 class _NameField extends StatelessWidget {
   const _NameField({
     required this.controller,
+    required this.focusNode,
     required this.onChanged,
     required this.onSubmitted,
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final ValueChanged<String> onChanged;
   final ValueChanged<String> onSubmitted;
 
@@ -309,6 +349,7 @@ class _NameField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       onChanged: onChanged,
       onSubmitted: onSubmitted,
       textInputAction: TextInputAction.done,
@@ -531,20 +572,46 @@ class _ExpiryPickerRow extends StatelessWidget {
 
 class _ActionRow extends StatelessWidget {
   const _ActionRow({
+    required this.isEdit,
     required this.onDelete,
     required this.onSave,
     required this.saving,
   });
 
+  final bool isEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onSave;
   final bool saving;
 
   @override
   Widget build(BuildContext context) {
+    // 추가 모드: 저장 버튼만 풀폭. 편집 모드: 삭제(1) + 저장(2) 비율.
+    if (!isEdit) {
+      return SizedBox(
+        height: 52,
+        child: FilledButton(
+          onPressed: onSave,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            disabledBackgroundColor: AppColors.borderStrong,
+            foregroundColor: Colors.white,
+            shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
+          ),
+          child: saving
+              ? const _SavingSpinner()
+              : const Text(
+                  '냉장고에 추가',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+        ),
+      );
+    }
+
     return Row(
       children: <Widget>[
-        // 삭제 (보조 액션, 좌측)
         Expanded(
           flex: 1,
           child: SizedBox(
@@ -566,7 +633,6 @@ class _ActionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppSpacing.md),
-        // 저장 (주 액션, 우측 크게)
         Expanded(
           flex: 2,
           child: SizedBox(
@@ -582,14 +648,7 @@ class _ActionRow extends StatelessWidget {
                 ),
               ),
               child: saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
+                  ? const _SavingSpinner()
                   : const Text(
                       '저장',
                       style: TextStyle(
@@ -601,6 +660,22 @@ class _ActionRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SavingSpinner extends StatelessWidget {
+  const _SavingSpinner();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 18,
+      height: 18,
+      child: CircularProgressIndicator(
+        strokeWidth: 2,
+        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+      ),
     );
   }
 }

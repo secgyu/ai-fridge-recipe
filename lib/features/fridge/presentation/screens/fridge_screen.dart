@@ -13,10 +13,10 @@ import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
 import 'package:fridge_meal/features/fridge/presentation/providers/ingredient_provider.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/category_filter_chips.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/cook_cta_button.dart';
-import 'package:fridge_meal/features/fridge/presentation/widgets/edit_ingredient_sheet.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/empty_fridge_state.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/expiry_warning_banner.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/fridge_header.dart';
+import 'package:fridge_meal/features/fridge/presentation/widgets/ingredient_sheet.dart';
 import 'package:fridge_meal/shared/widgets/ingredient_list_item.dart';
 
 /// 홈 화면 = 내 냉장고.
@@ -64,7 +64,7 @@ class FridgeScreen extends ConsumerWidget {
                   orElse: () => 0,
                 ),
                 onNotificationTap: () => _showComingSoon(context, '알림'),
-                onAddTap: () => _showComingSoon(context, '재료 추가'),
+                onAddTap: () => _openAddSheet(context),
               ),
               Expanded(
                 child: all.when(
@@ -75,7 +75,7 @@ class FridgeScreen extends ConsumerWidget {
                   data: (List<Ingredient> list) {
                     if (list.isEmpty) {
                       return EmptyFridgeState(
-                        onAddTap: () => _showComingSoon(context, '재료 추가'),
+                        onAddTap: () => _openAddSheet(context),
                       );
                     }
                     return _FridgeContent(
@@ -112,7 +112,12 @@ class FridgeScreen extends ConsumerWidget {
 
   Future<void> _openEditSheet(BuildContext context, Ingredient item) async {
     unawaited(HapticFeedback.selectionClick());
-    await EditIngredientSheet.show(context, item);
+    await IngredientSheet.showEdit(context, item);
+  }
+
+  Future<void> _openAddSheet(BuildContext context) async {
+    unawaited(HapticFeedback.selectionClick());
+    await IngredientSheet.showAdd(context);
   }
 
   void _showComingSoon(BuildContext context, String label) {
