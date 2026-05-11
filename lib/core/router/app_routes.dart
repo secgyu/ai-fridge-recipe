@@ -16,9 +16,10 @@ class AppRoutes {
   static const String history = '/history';
   static const String settings = '/settings';
 
-  // 설정 하위 화면 (settings 브랜치 내부 스택에 push).
-  static const String terms = '/settings/terms';
-  static const String privacy = '/settings/privacy';
+  // 약관·처리방침은 인증 전에도 접근 가능해야 하므로 최상위에 둔다.
+  // 가드 화이트리스트에 포함되어 어떤 상태에서도 push 가능.
+  static const String terms = '/terms';
+  static const String privacy = '/privacy';
 
   /// 로그인/스플래시가 가리키는 기본 메인 경로.
   /// 항상 첫 번째 탭(`/fridge`)으로 일치시킨다.

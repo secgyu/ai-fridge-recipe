@@ -55,6 +55,10 @@ GoRouter appRouter(Ref ref) {
       // 스플래시는 항상 통과. 자체 타이머 종료 후 → go(home).
       if (loc == AppRoutes.splash) return null;
 
+      // 약관·처리방침은 인증 상태와 무관하게 항상 접근 허용.
+      // 로그인 화면의 푸터 링크, 설정의 정보 섹션 양쪽에서 진입 가능해야 함.
+      if (loc == AppRoutes.terms || loc == AppRoutes.privacy) return null;
+
       final bool onboardingDone = ref.read(onboardingCompletedProvider);
       if (!onboardingDone) {
         return loc == AppRoutes.onboarding ? null : AppRoutes.onboarding;
@@ -97,6 +101,18 @@ GoRouter appRouter(Ref ref) {
           child: const LoginScreen(),
         ),
       ),
+      // 약관·처리방침: 어느 화면에서도 push 가능 (full-screen modal 느낌).
+      // 기본 MaterialPage 사용 → 플랫폼 표준 슬라이드 트랜지션.
+      GoRoute(
+        path: AppRoutes.terms,
+        builder: (BuildContext context, GoRouterState state) =>
+            const TermsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.privacy,
+        builder: (BuildContext context, GoRouterState state) =>
+            const PrivacyScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (
           BuildContext context,
@@ -135,18 +151,6 @@ GoRouter appRouter(Ref ref) {
               GoRoute(
                 path: AppRoutes.settings,
                 pageBuilder: _branchPageBuilder(const SettingsScreen()),
-                routes: <RouteBase>[
-                  GoRoute(
-                    path: 'terms',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const TermsScreen(),
-                  ),
-                  GoRoute(
-                    path: 'privacy',
-                    builder: (BuildContext context, GoRouterState state) =>
-                        const PrivacyScreen(),
-                  ),
-                ],
               ),
             ],
           ),

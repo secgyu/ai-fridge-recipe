@@ -4,7 +4,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:fridge_meal/core/router/app_routes.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_radius.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
@@ -126,8 +128,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     _TermsFooter(
-                      onTermsTap: () => _showComingSoon('서비스 이용약관'),
-                      onPrivacyTap: () => _showComingSoon('개인정보 처리방침'),
+                      onTermsTap: () {
+                        unawaited(HapticFeedback.selectionClick());
+                        context.push(AppRoutes.terms);
+                      },
+                      onPrivacyTap: () {
+                        unawaited(HapticFeedback.selectionClick());
+                        context.push(AppRoutes.privacy);
+                      },
                     ),
                     const SizedBox(height: AppSpacing.xl),
                   ],
