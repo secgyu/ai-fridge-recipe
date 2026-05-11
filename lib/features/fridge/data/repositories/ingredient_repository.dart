@@ -12,24 +12,36 @@ abstract class IngredientRepository {
   ///
   /// 정렬은 유통기한 가까운 순(없는 항목은 맨 뒤).
   Future<List<Ingredient>> fetchAll();
+
+  /// 신규 재료 추가.
+  Future<void> add(Ingredient ingredient);
+
+  /// 기존 재료 갱신. `id`로 식별.
+  Future<void> update(Ingredient ingredient);
+
+  /// `id`의 재료 삭제.
+  Future<void> delete(String id);
 }
 
 /// 실제 백엔드 연결 전 사용하는 임시 구현.
 ///
-/// 디자인 시안의 분위기를 빠르게 검증할 수 있도록 카테고리·D-day가
-/// 분포된 10개의 샘플을 반환한다. 메모리 상수이므로 추가/삭제는 불가.
+/// 내부에 가변 [List]를 유지하므로 add/update/delete가 같은 인스턴스 안에서
+/// 즉시 반영된다. Provider 레이어에서 invalidateSelf로 UI 동기화.
+///
+/// 앱이 종료되면 사라지는 in-memory 저장소이며, 영속화는 Supabase가 담당한다.
 class MockIngredientRepository implements IngredientRepository {
-  MockIngredientRepository();
+  MockIngredientRepository() {
+    _seed();
+  }
 
-  /// `DateTime.now()`를 기준으로 매번 D-day가 일관되게 계산되도록
-  /// expiryDate를 동적으로 생성한다.
-  @override
-  Future<List<Ingredient>> fetchAll() async {
+  final List<Ingredient> _items = <Ingredient>[];
+
+  void _seed() {
     final DateTime today = DateTime.now();
     DateTime daysFromNow(int n) =>
         DateTime(today.year, today.month, today.day + n);
 
-    final List<Ingredient> items = <Ingredient>[
+    _items.addAll(<Ingredient>[
       Ingredient(
         id: 'mock-1',
         userId: 'mock-user',
@@ -110,10 +122,35 @@ class MockIngredientRepository implements IngredientRepository {
         storage: StorageLocation.roomTemp,
         expiryDate: daysFromNow(180),
       ),
-    ];
+    ]);
+  }
 
-    items.sort(_byDaysLeftAsc);
-    return items;
+  @override
+  Future<List<Ingredient>> fetchAll() async {
+    final List<Ingredient> sorted = List<Ingredient>.from(_items)
+      ..sort(_byDaysLeftAsc);
+    return sorted;
+  }
+
+  @override
+  Future<void> add(Ingredient ingredient) async {
+    _items.add(ingredient);
+  }
+
+  @override
+  Future<void> update(Ingredient ingredient) async {
+    final int index = _items.indexWhere(
+      (Ingredient i) => i.id == ingredient.id,
+    );
+    if (index == -1) {
+      throw StateError('Ingredient ${ingredient.id} not found');
+    }
+    _items[index] = ingredient;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    _items.removeWhere((Ingredient i) => i.id == id);
   }
 
   /// D-day 오름차순. `expiryDate`가 null인 항목은 맨 뒤로 밀어낸다.

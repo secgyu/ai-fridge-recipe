@@ -13,6 +13,7 @@ import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
 import 'package:fridge_meal/features/fridge/presentation/providers/ingredient_provider.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/category_filter_chips.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/cook_cta_button.dart';
+import 'package:fridge_meal/features/fridge/presentation/widgets/edit_ingredient_sheet.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/empty_fridge_state.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/expiry_warning_banner.dart';
 import 'package:fridge_meal/features/fridge/presentation/widgets/fridge_header.dart';
@@ -89,8 +90,7 @@ class FridgeScreen extends ConsumerWidget {
                             .read(selectedCategoryFilterProvider.notifier)
                             .select(c);
                       },
-                      onItemTap: (Ingredient i) =>
-                          _showComingSoon(context, '${i.name} 수정'),
+                      onItemTap: (Ingredient i) => _openEditSheet(context, i),
                       onWarningTap: () =>
                           _showComingSoon(context, '임박 재료 보기'),
                     );
@@ -108,6 +108,11 @@ class FridgeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openEditSheet(BuildContext context, Ingredient item) async {
+    unawaited(HapticFeedback.selectionClick());
+    await EditIngredientSheet.show(context, item);
   }
 
   void _showComingSoon(BuildContext context, String label) {

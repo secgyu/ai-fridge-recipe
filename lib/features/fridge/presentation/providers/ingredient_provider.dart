@@ -13,10 +13,32 @@ IngredientRepository ingredientRepository(Ref ref) {
   return MockIngredientRepository();
 }
 
-/// 현재 사용자의 전체 재료 목록.
-@riverpod
-Future<List<Ingredient>> ingredients(Ref ref) {
-  return ref.watch(ingredientRepositoryProvider).fetchAll();
+/// 현재 사용자의 전체 재료 목록 + mutate 액션.
+///
+/// Repository 호출 후 [ref.invalidateSelf]로 상태를 다시 빌드한다.
+/// Mock은 동기적으로 끝나서 거의 즉시 반영되며, Supabase 도입 시에도
+/// 동일 패턴(요청 성공 시 invalidate)으로 동작한다.
+@Riverpod(keepAlive: true)
+class Ingredients extends _$Ingredients {
+  @override
+  Future<List<Ingredient>> build() {
+    return ref.watch(ingredientRepositoryProvider).fetchAll();
+  }
+
+  Future<void> addItem(Ingredient ingredient) async {
+    await ref.read(ingredientRepositoryProvider).add(ingredient);
+    ref.invalidateSelf();
+  }
+
+  Future<void> updateItem(Ingredient ingredient) async {
+    await ref.read(ingredientRepositoryProvider).update(ingredient);
+    ref.invalidateSelf();
+  }
+
+  Future<void> deleteItem(String id) async {
+    await ref.read(ingredientRepositoryProvider).delete(id);
+    ref.invalidateSelf();
+  }
 }
 
 /// 카테고리 필터 상태.
