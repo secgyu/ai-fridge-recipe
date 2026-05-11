@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:vector_graphics/vector_graphics.dart';
 
 import 'package:fridge_meal/core/theme/app_radius.dart';
 
-/// 소셜 로그인 버튼 (카카오 등 커스텀 브랜드 버튼용).
-///
-/// - 높이 56pt, radius 16
-/// - 좌측 24pt 위치에 아이콘, 텍스트는 절대 가운데 정렬
 class SocialLoginButton extends StatelessWidget {
   const SocialLoginButton({
     super.key,
@@ -37,8 +33,9 @@ class SocialLoginButton extends StatelessWidget {
           height: 56,
           decoration: BoxDecoration(
             borderRadius: AppRadius.rLg,
-            border:
-                borderColor != null ? Border.all(color: borderColor!) : null,
+            border: borderColor != null
+                ? Border.all(color: borderColor!)
+                : null,
           ),
           child: Stack(
             alignment: Alignment.center,
@@ -69,10 +66,16 @@ class SocialLoginButton extends StatelessWidget {
   }
 }
 
-/// 카카오 공식 브랜드 마크 (SVG).
+/// 카카오 공식 브랜드 마크.
 ///
 /// - 출처: tablecheck-icons (Public Domain) — Kakao 공식 말풍선 형태
+/// - 사전 컴파일된 `.svg.vec` 자산을 `VectorGraphic`으로 로드 (런타임 SVG 파싱 없음)
 /// - 색상은 [color]로 오버라이드 (기본: 검정 #191919)
+///
+/// SVG 원본을 수정한 후에는 반드시 다음을 실행해 `.vec`를 재생성하세요:
+/// ```bash
+/// dart run vector_graphics_compiler --input-dir assets/images/auth --tessellate
+/// ```
 class KakaoIcon extends StatelessWidget {
   const KakaoIcon({
     super.key,
@@ -80,13 +83,17 @@ class KakaoIcon extends StatelessWidget {
     this.color = const Color(0xFF191919),
   });
 
+  static const AssetBytesLoader _loader = AssetBytesLoader(
+    'assets/images/auth/kakao.svg.vec',
+  );
+
   final double size;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/images/auth/kakao.svg',
+    return VectorGraphic(
+      loader: _loader,
       width: size,
       height: size,
       colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
