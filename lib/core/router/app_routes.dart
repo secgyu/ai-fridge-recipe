@@ -16,6 +16,10 @@ class AppRoutes {
   static const String history = '/history';
   static const String settings = '/settings';
 
+  // 설정 하위 화면 (settings 브랜치 내부 스택에 push).
+  static const String terms = '/settings/terms';
+  static const String privacy = '/settings/privacy';
+
   /// 로그인/스플래시가 가리키는 기본 메인 경로.
   /// 항상 첫 번째 탭(`/fridge`)으로 일치시킨다.
   static const String home = fridge;

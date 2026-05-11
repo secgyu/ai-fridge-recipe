@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:fridge_meal/core/router/app_routes.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_radius.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
@@ -131,11 +133,17 @@ class SettingsScreen extends ConsumerWidget {
                 children: <Widget>[
                   ValueRow(
                     label: '서비스 이용약관',
-                    onTap: () => _showComingSoon(context, '서비스 이용약관'),
+                    onTap: () {
+                      unawaited(HapticFeedback.selectionClick());
+                      context.push(AppRoutes.terms);
+                    },
                   ),
                   ValueRow(
                     label: '개인정보 처리방침',
-                    onTap: () => _showComingSoon(context, '개인정보 처리방침'),
+                    onTap: () {
+                      unawaited(HapticFeedback.selectionClick());
+                      context.push(AppRoutes.privacy);
+                    },
                   ),
                   ValueRow(
                     label: '앱 버전',
@@ -217,20 +225,5 @@ class SettingsScreen extends ConsumerWidget {
     unawaited(HapticFeedback.lightImpact());
     await ref.read(authStateProvider.notifier).signOut();
     // 라우터 redirect가 /login으로 자동 이동시킴.
-  }
-
-  void _showComingSoon(BuildContext context, String label) {
-    unawaited(HapticFeedback.selectionClick());
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$label은 곧 만나실 수 있어요'),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(AppSpacing.lg),
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
-        ),
-      );
   }
 }

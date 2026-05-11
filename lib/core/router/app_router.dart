@@ -13,7 +13,9 @@ import 'package:fridge_meal/features/fridge/presentation/screens/fridge_screen.d
 import 'package:fridge_meal/features/history/presentation/screens/history_screen.dart';
 import 'package:fridge_meal/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:fridge_meal/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:fridge_meal/features/settings/presentation/screens/privacy_screen.dart';
 import 'package:fridge_meal/features/settings/presentation/screens/settings_screen.dart';
+import 'package:fridge_meal/features/settings/presentation/screens/terms_screen.dart';
 import 'package:fridge_meal/features/splash/presentation/screens/splash_screen.dart';
 
 part 'app_router.g.dart';
@@ -133,6 +135,18 @@ GoRouter appRouter(Ref ref) {
               GoRoute(
                 path: AppRoutes.settings,
                 pageBuilder: _branchPageBuilder(const SettingsScreen()),
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: 'terms',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const TermsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'privacy',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        const PrivacyScreen(),
+                  ),
+                ],
               ),
             ],
           ),
