@@ -29,4 +29,7 @@ class AppRoutes {
   // 결과 화면 진입 시 항아리에 담긴 재료 목록을 GoRouter `extra`로 전달.
   static const String recipeResults = '/recipe-results';
   static const String recipeDetail = '/recipe-detail';
+
+  // 재료 추가 풀스크린 (F-01). 3탭: 자동완성/바코드/직접 입력.
+  static const String addIngredient = '/add-ingredient';
 }

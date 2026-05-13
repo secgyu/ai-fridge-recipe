@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fridge_meal/core/constants/ingredient_category.dart';
+import 'package:fridge_meal/core/router/app_routes.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_radius.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
@@ -115,9 +117,9 @@ class FridgeScreen extends ConsumerWidget {
     await IngredientSheet.showEdit(context, item);
   }
 
-  Future<void> _openAddSheet(BuildContext context) async {
+  void _openAddSheet(BuildContext context) {
     unawaited(HapticFeedback.selectionClick());
-    await IngredientSheet.showAdd(context);
+    context.push(AppRoutes.addIngredient);
   }
 
   void _showComingSoon(BuildContext context, String label) {

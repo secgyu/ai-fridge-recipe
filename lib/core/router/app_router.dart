@@ -10,6 +10,7 @@ import 'package:fridge_meal/features/auth/presentation/providers/auth_provider.d
 import 'package:fridge_meal/features/auth/presentation/screens/login_screen.dart';
 import 'package:fridge_meal/features/cook/presentation/screens/cook_screen.dart';
 import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
+import 'package:fridge_meal/features/fridge/presentation/screens/add_ingredient_screen.dart';
 import 'package:fridge_meal/features/fridge/presentation/screens/fridge_screen.dart';
 import 'package:fridge_meal/features/history/presentation/screens/history_screen.dart';
 import 'package:fridge_meal/features/onboarding/presentation/providers/onboarding_provider.dart';
@@ -141,6 +142,11 @@ GoRouter appRouter(Ref ref) {
           }
           return RecipeDetailScreen(recipe: extra);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.addIngredient,
+        builder: (BuildContext context, GoRouterState state) =>
+            const AddIngredientScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (
