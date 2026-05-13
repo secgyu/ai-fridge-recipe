@@ -32,4 +32,7 @@ class AppRoutes {
 
   // 재료 추가 풀스크린 (F-01). 3탭: 자동완성/바코드/직접 입력.
   static const String addIngredient = '/add-ingredient';
+
+  // 식이 제한 설정 (F-09).
+  static const String dietaryRestrictions = '/settings/dietary-restrictions';
 }

@@ -3,6 +3,7 @@ import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:fridge_meal/features/settings/data/models/dietary_restriction.dart';
 import 'package:fridge_meal/features/settings/data/repositories/settings_repository.dart';
 
 part 'settings_provider.g.dart';
@@ -54,4 +55,31 @@ class DefaultServings extends _$DefaultServings {
 Future<String> appVersion(Ref ref) async {
   final PackageInfo info = await PackageInfo.fromPlatform();
   return '${info.version} (${info.buildNumber})';
+}
+
+/// 사용자 식이 제한 (F-09). 레시피 추천 시 함께 전달 예정.
+@Riverpod(keepAlive: true)
+class DietaryRestrictions extends _$DietaryRestrictions {
+  @override
+  Set<DietaryRestriction> build() {
+    return ref.watch(settingsRepositoryProvider).getDietaryRestrictions();
+  }
+
+  Future<void> toggle(DietaryRestriction r) async {
+    final Set<DietaryRestriction> next = <DietaryRestriction>{...state};
+    if (next.contains(r)) {
+      next.remove(r);
+    } else {
+      next.add(r);
+    }
+    await ref.read(settingsRepositoryProvider).setDietaryRestrictions(next);
+    state = next;
+  }
+
+  Future<void> clear() async {
+    await ref
+        .read(settingsRepositoryProvider)
+        .setDietaryRestrictions(const <DietaryRestriction>{});
+    state = const <DietaryRestriction>{};
+  }
 }

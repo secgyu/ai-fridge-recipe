@@ -14,6 +14,7 @@ import 'package:fridge_meal/features/auth/data/repositories/auth_repository.dart
 import 'package:fridge_meal/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
 import 'package:fridge_meal/features/fridge/presentation/providers/ingredient_provider.dart';
+import 'package:fridge_meal/features/settings/data/models/dietary_restriction.dart';
 import 'package:fridge_meal/features/settings/presentation/providers/settings_provider.dart';
 import 'package:fridge_meal/features/settings/presentation/widgets/settings_row.dart';
 import 'package:fridge_meal/features/settings/presentation/widgets/settings_section.dart';
@@ -34,6 +35,8 @@ class SettingsScreen extends ConsumerWidget {
     final bool expiryOn = ref.watch(expiryNotificationEnabledProvider);
     final int servings = ref.watch(defaultServingsProvider);
     final AsyncValue<String> version = ref.watch(appVersionProvider);
+    final Set<DietaryRestriction> diets =
+        ref.watch(dietaryRestrictionsProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
@@ -117,6 +120,17 @@ class SettingsScreen extends ConsumerWidget {
                       unawaited(
                         ref.read(defaultServingsProvider.notifier).increment(),
                       );
+                    },
+                  ),
+                  ValueRow(
+                    label: '식이 제한',
+                    subtitle: '레시피 추천 시 자동으로 제외돼요',
+                    value: diets.isEmpty
+                        ? '없음'
+                        : '${diets.length}개 선택',
+                    onTap: () {
+                      unawaited(HapticFeedback.selectionClick());
+                      context.push(AppRoutes.dietaryRestrictions);
                     },
                   ),
                 ],

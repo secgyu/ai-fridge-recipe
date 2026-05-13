@@ -12,6 +12,7 @@ import 'package:fridge_meal/features/cook/presentation/screens/cook_screen.dart'
 import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
 import 'package:fridge_meal/features/fridge/presentation/screens/add_ingredient_screen.dart';
 import 'package:fridge_meal/features/fridge/presentation/screens/fridge_screen.dart';
+import 'package:fridge_meal/features/settings/presentation/screens/dietary_restrictions_screen.dart';
 import 'package:fridge_meal/features/history/presentation/screens/history_screen.dart';
 import 'package:fridge_meal/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:fridge_meal/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -147,6 +148,11 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.addIngredient,
         builder: (BuildContext context, GoRouterState state) =>
             const AddIngredientScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.dietaryRestrictions,
+        builder: (BuildContext context, GoRouterState state) =>
+            const DietaryRestrictionsScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (
