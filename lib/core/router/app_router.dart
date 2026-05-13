@@ -9,10 +9,14 @@ import 'package:fridge_meal/features/auth/data/repositories/auth_repository.dart
 import 'package:fridge_meal/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fridge_meal/features/auth/presentation/screens/login_screen.dart';
 import 'package:fridge_meal/features/cook/presentation/screens/cook_screen.dart';
+import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
 import 'package:fridge_meal/features/fridge/presentation/screens/fridge_screen.dart';
 import 'package:fridge_meal/features/history/presentation/screens/history_screen.dart';
 import 'package:fridge_meal/features/onboarding/presentation/providers/onboarding_provider.dart';
 import 'package:fridge_meal/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:fridge_meal/features/recipe/data/models/recipe.dart';
+import 'package:fridge_meal/features/recipe/presentation/screens/recipe_detail_screen.dart';
+import 'package:fridge_meal/features/recipe/presentation/screens/recipe_results_screen.dart';
 import 'package:fridge_meal/features/settings/presentation/screens/privacy_screen.dart';
 import 'package:fridge_meal/features/settings/presentation/screens/settings_screen.dart';
 import 'package:fridge_meal/features/settings/presentation/screens/terms_screen.dart';
@@ -112,6 +116,31 @@ GoRouter appRouter(Ref ref) {
         path: AppRoutes.privacy,
         builder: (BuildContext context, GoRouterState state) =>
             const PrivacyScreen(),
+      ),
+      // 레시피 결과·상세는 셸 밖 풀스크린.
+      // `extra`로 직접 객체를 전달 (모바일 전용이라 web extra 휘발 이슈 무관).
+      GoRoute(
+        path: AppRoutes.recipeResults,
+        builder: (BuildContext context, GoRouterState state) {
+          final Object? extra = state.extra;
+          final List<Ingredient> seed = extra is List<Ingredient>
+              ? extra
+              : const <Ingredient>[];
+          return RecipeResultsScreen(seedIngredients: seed);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.recipeDetail,
+        builder: (BuildContext context, GoRouterState state) {
+          final Object? extra = state.extra;
+          if (extra is! Recipe) {
+            // 잘못된 진입은 결과로 폴백.
+            return const RecipeResultsScreen(
+              seedIngredients: <Ingredient>[],
+            );
+          }
+          return RecipeDetailScreen(recipe: extra);
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (

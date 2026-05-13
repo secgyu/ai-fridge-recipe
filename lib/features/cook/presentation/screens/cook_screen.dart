@@ -85,7 +85,7 @@ class _CookScreenState extends ConsumerState<CookScreen> {
                 },
                 onPotTap: () => SelectedIngredientsSheet.show(context),
                 selectedCount: selected.length,
-                onGenerate: () => _showComingSoon(context),
+                onGenerate: () => _goToResults(context, selected),
               );
             },
           ),
@@ -94,19 +94,9 @@ class _CookScreenState extends ConsumerState<CookScreen> {
     );
   }
 
-  void _showComingSoon(BuildContext context) {
-    unawaited(HapticFeedback.selectionClick());
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: const Text('AI 레시피 생성은 곧 만나실 수 있어요'),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(AppSpacing.lg),
-          shape: const RoundedRectangleBorder(borderRadius: AppRadius.rMd),
-        ),
-      );
+  void _goToResults(BuildContext context, List<Ingredient> selected) {
+    unawaited(HapticFeedback.mediumImpact());
+    context.push(AppRoutes.recipeResults, extra: selected);
   }
 }
 

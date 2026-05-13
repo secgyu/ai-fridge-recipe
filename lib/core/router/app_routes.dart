@@ -25,8 +25,8 @@ class AppRoutes {
   /// 항상 첫 번째 탭(`/fridge`)으로 일치시킨다.
   static const String home = fridge;
 
-  // 추후 추가 예정 (메인 플로우 도입 시)
-  // static const String scan = '/scan';
-  // static const String confirm = '/confirm';
-  // static const String recipe = '/recipe/:id';
+  // 레시피 결과/상세 — 셸 밖 풀스크린.
+  // 결과 화면 진입 시 항아리에 담긴 재료 목록을 GoRouter `extra`로 전달.
+  static const String recipeResults = '/recipe-results';
+  static const String recipeDetail = '/recipe-detail';
 }
