@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import 'package:fridge_meal/core/constants/ingredient_category.dart';
+import 'package:fridge_meal/core/services/notification_service.dart';
 import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
 import 'package:fridge_meal/features/fridge/data/repositories/ingredient_repository.dart';
+import 'package:fridge_meal/features/settings/presentation/providers/settings_provider.dart';
 
 part 'ingredient_provider.g.dart';
 
@@ -27,17 +31,30 @@ class Ingredients extends _$Ingredients {
 
   Future<void> addItem(Ingredient ingredient) async {
     await ref.read(ingredientRepositoryProvider).add(ingredient);
+    unawaited(_syncNotification(ingredient));
     ref.invalidateSelf();
   }
 
   Future<void> updateItem(Ingredient ingredient) async {
     await ref.read(ingredientRepositoryProvider).update(ingredient);
+    unawaited(_syncNotification(ingredient));
     ref.invalidateSelf();
   }
 
   Future<void> deleteItem(String id) async {
     await ref.read(ingredientRepositoryProvider).delete(id);
+    unawaited(NotificationService.instance.cancelForIngredient(id));
     ref.invalidateSelf();
+  }
+
+  /// 사용자 설정이 ON인 경우에만 알림 스케줄링 동기화.
+  Future<void> _syncNotification(Ingredient ingredient) async {
+    final bool enabled = ref.read(expiryNotificationEnabledProvider);
+    if (!enabled) {
+      await NotificationService.instance.cancelForIngredient(ingredient.id);
+      return;
+    }
+    await NotificationService.instance.scheduleForIngredient(ingredient);
   }
 }
 

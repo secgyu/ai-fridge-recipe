@@ -44,6 +44,8 @@ dependencies:
 
   # Notifications
   flutter_local_notifications: ^18.0.0
+  # zonedSchedule에 필요한 tz.TZDateTime 지원.
+  timezone: ^0.10.0
   # workmanager는 v1 embedding API를 사용해 Flutter 최신 버전과 호환되지 않음.
   # 만료 알림은 flutter_local_notifications.zonedSchedule()로 충분.
   # 진짜 백그라운드 워커가 필요해지면 workmanager_plus 등 활성 포크로 교체.

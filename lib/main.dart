@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:fridge_meal/app.dart';
 import 'package:fridge_meal/core/network/env.dart';
+import 'package:fridge_meal/core/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,9 @@ Future<void> main() async {
   await Hive.openBox<String>('favorites');
   // F-07: 만든 요리 기록. key=`${recipe.id}_${ms}`, value=jsonEncoded CookHistoryEntry.
   await Hive.openBox<String>('cook_history');
+
+  // F-06: 유통기한 로컬 알림. 권한 요청은 첫 진입 후 별도 UX에서 진행.
+  await NotificationService.instance.initialize();
 
   runApp(const ProviderScope(child: FridgeMealApp()));
 }

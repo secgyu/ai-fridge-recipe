@@ -6,11 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fridge_meal/core/router/app_routes.dart';
+import 'package:fridge_meal/core/services/notification_service.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_radius.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
 import 'package:fridge_meal/features/auth/data/repositories/auth_repository.dart';
 import 'package:fridge_meal/features/auth/presentation/providers/auth_provider.dart';
+import 'package:fridge_meal/features/fridge/data/models/ingredient.dart';
+import 'package:fridge_meal/features/fridge/presentation/providers/ingredient_provider.dart';
 import 'package:fridge_meal/features/settings/presentation/providers/settings_provider.dart';
 import 'package:fridge_meal/features/settings/presentation/widgets/settings_row.dart';
 import 'package:fridge_meal/features/settings/presentation/widgets/settings_section.dart';
@@ -84,16 +87,9 @@ class SettingsScreen extends ConsumerWidget {
                 children: <Widget>[
                   SwitchRow(
                     label: '유통기한 알림',
-                    subtitle: 'D-3 / D-Day에 푸시로 알려드려요',
+                    subtitle: 'D-3 / D-1 / D-Day 오전 9시에 알려드려요',
                     value: expiryOn,
-                    onChanged: (_) {
-                      unawaited(HapticFeedback.selectionClick());
-                      unawaited(
-                        ref
-                            .read(expiryNotificationEnabledProvider.notifier)
-                            .toggle(),
-                      );
-                    },
+                    onChanged: (_) => _onToggleExpiry(ref),
                   ),
                 ],
               ),
@@ -181,6 +177,25 @@ class SettingsScreen extends ConsumerWidget {
       case AuthMode.authenticated:
         // TODO(supabase): Supabase Auth 연동 후 사용자 이메일 표시.
         return null;
+    }
+  }
+
+  /// 유통기한 알림 토글의 부수효과 일괄 처리.
+  ///
+  /// ON으로 바뀌면 권한 요청 + 모든 재료 알림 재등록.
+  /// OFF로 바뀌면 등록된 모든 알림 취소.
+  Future<void> _onToggleExpiry(WidgetRef ref) async {
+    unawaited(HapticFeedback.selectionClick());
+    await ref.read(expiryNotificationEnabledProvider.notifier).toggle();
+    final bool nowOn = ref.read(expiryNotificationEnabledProvider);
+
+    if (nowOn) {
+      await NotificationService.instance.requestPermissions();
+      final List<Ingredient> list =
+          await ref.read(ingredientsProvider.future);
+      await NotificationService.instance.rescheduleAll(list);
+    } else {
+      await NotificationService.instance.cancelAll();
     }
   }
 
