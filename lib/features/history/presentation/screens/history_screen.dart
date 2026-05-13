@@ -2,21 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fridge_meal/core/router/app_routes.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
 import 'package:fridge_meal/features/history/presentation/widgets/empty_history_view.dart';
+import 'package:fridge_meal/features/recipe/data/models/recipe.dart';
+import 'package:fridge_meal/features/recipe/presentation/providers/favorite_recipe_provider.dart';
+import 'package:fridge_meal/features/recipe/presentation/widgets/recipe_card.dart';
 
 /// 기록 탭.
 ///
-/// 두 가지 카테고리를 분리:
-/// - 즐겨찾기: 레시피 상세에서 ❤️로 명시적으로 저장한 것 (F-07)
-/// - 만든 요리: AI 추천을 실제 조리 완료한 기록 (F-07/F-11)
-///
-/// MVP 단계에서는 두 탭 모두 빈 상태만 노출하며, F-07/F-11이 들어오면
-/// `TabBarView` 내부 위젯만 실제 리스트로 교체된다.
+/// - 즐겨찾기: 레시피 상세에서 ❤️로 저장한 것 (F-07, Hive `favorites` 박스)
+/// - 만든 요리: AI 추천을 실제 조리 완료한 기록 (F-07/F-11, 다음 단계)
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
@@ -42,13 +42,7 @@ class HistoryScreen extends StatelessWidget {
                   child: TabBarView(
                     physics: const BouncingScrollPhysics(),
                     children: <Widget>[
-                      EmptyHistoryView(
-                        icon: Icons.favorite_rounded,
-                        title: '즐겨찾는 레시피가 없어요',
-                        description: '마음에 든 레시피에 별을 눌러두면\n오프라인에서도 다시 볼 수 있어요',
-                        actionLabel: '레시피 만들러 가기',
-                        onAction: () => _goToCook(context),
-                      ),
+                      _FavoritesTab(onGoToCook: () => _goToCook(context)),
                       EmptyHistoryView(
                         icon: Icons.restaurant_menu_rounded,
                         title: '아직 만든 요리가 없어요',
@@ -70,6 +64,49 @@ class HistoryScreen extends StatelessWidget {
   void _goToCook(BuildContext context) {
     unawaited(HapticFeedback.selectionClick());
     context.go(AppRoutes.cook);
+  }
+}
+
+/// 즐겨찾기 탭의 본문. 비어있으면 empty state, 아니면 카드 리스트.
+class _FavoritesTab extends ConsumerWidget {
+  const _FavoritesTab({required this.onGoToCook});
+
+  final VoidCallback onGoToCook;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final List<Recipe> favorites = ref.watch(favoriteRecipesProvider);
+
+    if (favorites.isEmpty) {
+      return EmptyHistoryView(
+        icon: Icons.favorite_rounded,
+        title: '즐겨찾는 레시피가 없어요',
+        description: '마음에 든 레시피에 별을 눌러두면\n오프라인에서도 다시 볼 수 있어요',
+        actionLabel: '레시피 만들러 가기',
+        onAction: onGoToCook,
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+        AppSpacing.xxxl,
+      ),
+      itemCount: favorites.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+      itemBuilder: (BuildContext context, int index) {
+        final Recipe recipe = favorites[index];
+        return RecipeCard(
+          recipe: recipe,
+          onTap: () {
+            unawaited(HapticFeedback.selectionClick());
+            context.push(AppRoutes.recipeDetail, extra: recipe);
+          },
+        );
+      },
+    );
   }
 }
 

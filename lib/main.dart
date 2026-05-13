@@ -15,9 +15,10 @@ Future<void> main() async {
   );
 
   await Hive.initFlutter();
-  // Adapter 등록은 Day 3~4에서 모델과 함께 추가.
-  // Hive.registerAdapter(IngredientAdapter());
+  // Adapter 등록은 Supabase 도입 시 진행 (현재는 Recipe를 jsonEncode 문자열로 저장).
   await Hive.openBox<dynamic>('settings');
+  // F-07: 즐겨찾기 레시피 캐시. key=recipe.id, value=jsonEncoded Recipe.
+  await Hive.openBox<String>('favorites');
 
   runApp(const ProviderScope(child: FridgeMealApp()));
 }

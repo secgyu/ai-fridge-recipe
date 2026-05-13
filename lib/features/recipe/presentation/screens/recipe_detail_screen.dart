@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_radius.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
 import 'package:fridge_meal/features/recipe/data/models/recipe.dart';
+import 'package:fridge_meal/features/recipe/presentation/providers/favorite_recipe_provider.dart';
 import 'package:fridge_meal/features/recipe/presentation/widgets/recipe_hero.dart';
 import 'package:fridge_meal/features/recipe/presentation/widgets/recipe_ingredient_list.dart';
 import 'package:fridge_meal/features/recipe/presentation/widgets/recipe_step_tile.dart';
@@ -15,29 +17,46 @@ import 'package:fridge_meal/features/recipe/presentation/widgets/recipe_step_til
 ///
 /// - 히어로: 카테고리 그라데이션 + 큰 이모지 + 요리명/메타
 /// - 재료: 보유/미보유 체크리스트
-/// - 단계: 인덱스 배지 + 설명 + 타이머 토글 (F-05의 백그라운드 알림은 v1.1에서)
+/// - 단계: 인덱스 배지 + 설명 + 타이머 토글
 /// - 팁: 카드로 묶어 강조
-/// - 즐겨찾기: 상단 ❤️ 토글 (현재는 로컬 state, F-07에서 Hive 연동 예정)
-class RecipeDetailScreen extends StatefulWidget {
+/// - 즐겨찾기(F-07): 상단 ❤️ 토글 → Hive `favorites` 박스 영속화
+class RecipeDetailScreen extends ConsumerStatefulWidget {
   const RecipeDetailScreen({super.key, required this.recipe});
 
   final Recipe recipe;
 
   @override
-  State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
+  ConsumerState<RecipeDetailScreen> createState() =>
+      _RecipeDetailScreenState();
 }
 
-class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
-  bool _isFavorite = false;
-
-  void _toggleFavorite() {
+class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
+  Future<void> _toggleFavorite() async {
     unawaited(HapticFeedback.lightImpact());
-    setState(() => _isFavorite = !_isFavorite);
-    // TODO(F-07): Hive favoriteRecipesProvider에 add/remove.
+    final bool added = await ref
+        .read(favoriteRecipesProvider.notifier)
+        .toggle(widget.recipe);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(added ? '즐겨찾기에 추가했어요' : '즐겨찾기에서 제거했어요'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isFavorite = ref.watch(
+      favoriteRecipesProvider.select(
+        (List<Recipe> list) =>
+            list.any((Recipe r) => r.id == widget.recipe.id),
+      ),
+    );
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.dark.copyWith(
         statusBarColor: Colors.transparent,
@@ -62,15 +81,15 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               actions: <Widget>[
                 IconButton(
                   icon: Icon(
-                    _isFavorite
+                    isFavorite
                         ? Icons.favorite_rounded
                         : Icons.favorite_outline_rounded,
-                    color: _isFavorite
+                    color: isFavorite
                         ? AppColors.danger
                         : AppColors.textPrimary,
                   ),
                   onPressed: _toggleFavorite,
-                  tooltip: _isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가',
+                  tooltip: isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가',
                 ),
                 const SizedBox(width: AppSpacing.xs),
               ],
