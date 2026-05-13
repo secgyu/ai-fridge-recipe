@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_radius.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
+import 'package:fridge_meal/features/history/presentation/providers/cook_history_provider.dart';
 import 'package:fridge_meal/features/recipe/data/models/recipe.dart';
 import 'package:fridge_meal/features/recipe/presentation/providers/favorite_recipe_provider.dart';
 import 'package:fridge_meal/features/recipe/presentation/widgets/recipe_hero.dart';
@@ -31,6 +32,23 @@ class RecipeDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
+  Future<void> _markCompleted() async {
+    unawaited(HapticFeedback.mediumImpact());
+    await ref
+        .read(cookHistoryProvider.notifier)
+        .addCompleted(widget.recipe);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('${widget.recipe.name} 만들었어요! 기록에 저장했어요'),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
   Future<void> _toggleFavorite() async {
     unawaited(HapticFeedback.lightImpact());
     final bool added = await ref
@@ -147,20 +165,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               ),
           ],
         ),
-        bottomNavigationBar: _CompleteCta(
-          onPressed: () {
-            unawaited(HapticFeedback.mediumImpact());
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(
-                  content: Text('요리 완료 기록은 곧 만나실 수 있어요'),
-                  duration: Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-          },
-        ),
+        bottomNavigationBar: _CompleteCta(onPressed: _markCompleted),
       ),
     );
   }

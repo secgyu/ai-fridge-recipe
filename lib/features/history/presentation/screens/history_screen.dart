@@ -8,6 +8,9 @@ import 'package:go_router/go_router.dart';
 import 'package:fridge_meal/core/router/app_routes.dart';
 import 'package:fridge_meal/core/theme/app_colors.dart';
 import 'package:fridge_meal/core/theme/app_spacing.dart';
+import 'package:fridge_meal/features/history/data/models/cook_history_entry.dart';
+import 'package:fridge_meal/features/history/presentation/providers/cook_history_provider.dart';
+import 'package:fridge_meal/features/history/presentation/widgets/cook_history_tile.dart';
 import 'package:fridge_meal/features/history/presentation/widgets/empty_history_view.dart';
 import 'package:fridge_meal/features/recipe/data/models/recipe.dart';
 import 'package:fridge_meal/features/recipe/presentation/providers/favorite_recipe_provider.dart';
@@ -43,13 +46,7 @@ class HistoryScreen extends StatelessWidget {
                     physics: const BouncingScrollPhysics(),
                     children: <Widget>[
                       _FavoritesTab(onGoToCook: () => _goToCook(context)),
-                      EmptyHistoryView(
-                        icon: Icons.restaurant_menu_rounded,
-                        title: '아직 만든 요리가 없어요',
-                        description: 'AI가 추천한 레시피를 완성하면\n여기에 차곡차곡 쌓여요',
-                        actionLabel: '레시피 만들러 가기',
-                        onAction: () => _goToCook(context),
-                      ),
+                      _MadeDishesTab(onGoToCook: () => _goToCook(context)),
                     ],
                   ),
                 ),
@@ -107,6 +104,81 @@ class _FavoritesTab extends ConsumerWidget {
         );
       },
     );
+  }
+}
+
+/// 만든 요리 탭. 시간 역순으로 카드 리스트, 비면 empty state.
+class _MadeDishesTab extends ConsumerWidget {
+  const _MadeDishesTab({required this.onGoToCook});
+
+  final VoidCallback onGoToCook;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final List<CookHistoryEntry> entries = ref.watch(cookHistoryProvider);
+
+    if (entries.isEmpty) {
+      return EmptyHistoryView(
+        icon: Icons.restaurant_menu_rounded,
+        title: '아직 만든 요리가 없어요',
+        description: 'AI가 추천한 레시피를 완성하면\n여기에 차곡차곡 쌓여요',
+        actionLabel: '레시피 만들러 가기',
+        onAction: onGoToCook,
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.xxl,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+        AppSpacing.xxxl,
+      ),
+      itemCount: entries.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+      itemBuilder: (BuildContext context, int index) {
+        final CookHistoryEntry entry = entries[index];
+        return CookHistoryTile(
+          entry: entry,
+          onTap: () {
+            unawaited(HapticFeedback.selectionClick());
+            context.push(AppRoutes.recipeDetail, extra: entry.recipe);
+          },
+          onDelete: () => _confirmDelete(context, ref, entry),
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    CookHistoryEntry entry,
+  ) async {
+    unawaited(HapticFeedback.lightImpact());
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text('기록을 삭제할까요?'),
+          content: Text('${entry.recipe.name} 기록이 사라집니다.'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              child: const Text('삭제'),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok == true) {
+      await ref.read(cookHistoryProvider.notifier).delete(entry.id);
+    }
   }
 }
 

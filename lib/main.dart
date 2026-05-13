@@ -19,6 +19,8 @@ Future<void> main() async {
   await Hive.openBox<dynamic>('settings');
   // F-07: 즐겨찾기 레시피 캐시. key=recipe.id, value=jsonEncoded Recipe.
   await Hive.openBox<String>('favorites');
+  // F-07: 만든 요리 기록. key=`${recipe.id}_${ms}`, value=jsonEncoded CookHistoryEntry.
+  await Hive.openBox<String>('cook_history');
 
   runApp(const ProviderScope(child: FridgeMealApp()));
 }
